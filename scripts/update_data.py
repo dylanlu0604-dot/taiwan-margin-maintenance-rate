@@ -24,6 +24,7 @@ import requests
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CSV_PATH = ROOT_DIR / "data" / "margin_maintenance.csv"
+DEFAULT_MACROMICRO_XLSX_PATH = ROOT_DIR / "macromicro-old-maintenance-margin-rate.xlsx"
 TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 TWSE_BASE_URL = "https://www.twse.com.tw/rwd/zh"
 TPEX_BASE_URL = "https://www.tpex.org.tw/www/zh-tw"
@@ -63,6 +64,7 @@ CSV_COLUMNS = [
     "TWIILow",
     "TWIIClose",
     "TWIIVolume",
+    "MacroMicroOldMarginMaintenanceRate",
     "Status",
 ]
 
@@ -852,7 +854,11 @@ def merge_margin_rows(existing: pd.DataFrame, new_rows: list[dict[str, Any]]) ->
         new_status = row.get("Status")
         should_replace = is_ok_status(new_status) or not is_ok_status(old_status)
         if should_replace:
-            frame.loc[idx, CSV_COLUMNS] = row_frame.iloc[0]
+            replacement = row_frame.iloc[0].copy()
+            for column in CSV_COLUMNS:
+                if pd.isna(replacement[column]) and column in frame.columns and not pd.isna(frame.at[idx, column]):
+                    replacement[column] = frame.at[idx, column]
+            frame.loc[idx, CSV_COLUMNS] = replacement
 
     frame = frame.drop_duplicates(subset=["Date"], keep="last")
     frame = frame.sort_values("Date").reset_index(drop=True)
@@ -890,6 +896,32 @@ def fill_twii_values(frame: pd.DataFrame, start_date: str | None = None, end_dat
     return frame.reset_index()[CSV_COLUMNS]
 
 
+def fill_macromicro_old_values(frame: pd.DataFrame, xlsx_path: Path) -> pd.DataFrame:
+    if frame.empty or not xlsx_path.exists():
+        return frame
+
+    frame = frame.copy()
+    frame["Date"] = pd.to_datetime(frame["Date"]).dt.strftime("%Y-%m-%d")
+    macro = pd.read_excel(xlsx_path)
+    required_columns = {"Date", "Value"}
+    if not required_columns.issubset(macro.columns):
+        raise DataUnavailableError(f"{xlsx_path}: expected columns Date and Value")
+
+    macro = macro[["Date", "Value"]].copy()
+    macro["Date"] = pd.to_datetime(macro["Date"]).dt.strftime("%Y-%m-%d")
+    macro["MacroMicroOldMarginMaintenanceRate"] = pd.to_numeric(macro["Value"], errors="coerce")
+    macro = macro.drop(columns=["Value"]).dropna(subset=["MacroMicroOldMarginMaintenanceRate"])
+    macro = macro.drop_duplicates(subset=["Date"], keep="last")
+
+    frame = frame.drop(columns=["MacroMicroOldMarginMaintenanceRate"], errors="ignore")
+    merged = pd.merge(frame, macro, on="Date", how="left")
+    print(
+        "MacroMicro old rows filled: "
+        f"{int(merged['MacroMicroOldMarginMaintenanceRate'].notna().sum())}"
+    )
+    return merged[CSV_COLUMNS]
+
+
 def write_csv(frame: pd.DataFrame, csv_path: Path) -> None:
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     frame = frame.copy()
@@ -925,6 +957,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--today", help="Override today's date, YYYY-MM-DD, for scheduled backfills/tests.")
     parser.add_argument("--skip-margin", action="store_true", help="Only fill missing TWII columns.")
     parser.add_argument("--skip-twii", action="store_true", help="Only update margin columns.")
+    parser.add_argument(
+        "--macromicro-xlsx",
+        type=Path,
+        default=DEFAULT_MACROMICRO_XLSX_PATH,
+        help="Optional MacroMicro old xlsx source with Date and Value columns.",
+    )
+    parser.add_argument("--skip-macromicro", action="store_true", help="Do not refresh MacroMicro old values.")
     return parser.parse_args()
 
 
@@ -950,6 +989,9 @@ def main() -> None:
         updated = fill_twii_values(updated, start_date=start_date, end_date=end_date)
         if updated["TWIIClose"].isna().any():
             updated = fill_twii_values(updated)
+
+    if not args.skip_macromicro:
+        updated = fill_macromicro_old_values(updated, args.macromicro_xlsx)
 
     write_csv(updated, args.csv)
     ok_rows = int((updated["Status"].astype(str).str.lower() == "ok").sum())

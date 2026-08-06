@@ -1,12 +1,13 @@
 # 融資維持率與台灣加權指數
 
-這個專案每天更新上市、上櫃與合併融資維持率，並把台灣加權股價指數一起寫入 CSV，供 `index.html` 在 GitHub Pages 上繪製雙軸互動圖表。
+這個專案每天更新上市、上櫃與合併融資維持率，並把台灣加權股價指數與 Macromicro old 維持率一起寫入 CSV，供 `index.html` 在 GitHub Pages 上繪製互動圖表。
 
 ## 資料檔
 
 - `data/margin_maintenance.csv`
   - 融資維持率、融資市值、融資金額
   - 台灣加權股價指數 OHLC
+  - `MacroMicroOldMarginMaintenanceRate`
   - 每日抓取狀態
 
 ## 計算口徑
@@ -24,6 +25,7 @@
 - TPEX 上櫃融資融券餘額：<https://www.tpex.org.tw/zh-tw/mainboard/trading/margin-trading/transactions.html>
 - TWSE 發行量加權股價指數歷史資料：<https://www.twse.com.tw/zh/indices/taiex/mi-5min-hist.html>
 - Yahoo Finance `^TWII` 參考頁：<https://tw.stock.yahoo.com/quote/%5ETWII>
+- Macromicro old：本機 `macromicro-old-maintenance-margin-rate.xlsx` 匯入後寫入 CSV
 
 ## 本機更新
 

@@ -163,8 +163,7 @@
     }
 
     .metric,
-    .chart-panel,
-    .table-panel {
+    .chart-panel {
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--surface);
@@ -234,53 +233,6 @@
     .chart-wrap {
       position: relative;
       height: 486px;
-    }
-
-    .table-panel {
-      margin-top: 14px;
-      overflow: hidden;
-    }
-
-    .table-title {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--line);
-      font-weight: 760;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    th,
-    td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--line);
-      text-align: right;
-      white-space: nowrap;
-    }
-
-    th:first-child,
-    td:first-child,
-    th:last-child,
-    td:last-child {
-      text-align: left;
-    }
-
-    th {
-      color: var(--muted);
-      background: var(--surface-soft);
-      font-size: 12px;
-      font-weight: 760;
-    }
-
-    tr:last-child td {
-      border-bottom: 0;
-    }
-
-    .scroll {
-      overflow-x: auto;
     }
 
     .empty {
@@ -412,9 +364,9 @@
         <div class="metric-note" id="twiiDelta">--</div>
       </article>
       <article class="metric">
-        <div class="metric-label">CSV 資料筆數</div>
-        <div class="metric-value" id="totalRows">--</div>
-        <div class="metric-note" id="updatedAt">--</div>
+        <div class="metric-label">Macromicro old</div>
+        <div class="metric-value" id="latestMacro">--</div>
+        <div class="metric-note" id="macroNote">--</div>
       </article>
     </section>
 
@@ -425,25 +377,6 @@
       </div>
       <div class="chart-wrap">
         <canvas id="mainChart"></canvas>
-      </div>
-    </section>
-
-    <section class="table-panel">
-      <div class="table-title">近期資料</div>
-      <div class="scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>日期</th>
-              <th>融資維持率</th>
-              <th>加權指數</th>
-              <th>上市維持率</th>
-              <th>上櫃維持率</th>
-              <th>狀態</th>
-            </tr>
-          </thead>
-          <tbody id="recentRows"></tbody>
-        </table>
       </div>
     </section>
   </main>
@@ -479,15 +412,6 @@
       return Number.isFinite(parsed) ? parsed : null;
     }
 
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
     function isOk(row) {
       return String(row.Status || "").toLowerCase() === "ok";
     }
@@ -505,6 +429,7 @@
           CombinedMarginMaintenanceRate_IncludeETF: num(row.CombinedMarginMaintenanceRate_IncludeETF),
           CombinedMarginMaintenanceRate_ExcludeETF: num(row.CombinedMarginMaintenanceRate_ExcludeETF),
           TWIIClose: num(row.TWIIClose),
+          MacroMicroOldMarginMaintenanceRate: num(row.MacroMicroOldMarginMaintenanceRate),
         }))
         .sort((a, b) => a.Date.localeCompare(b.Date));
     }
@@ -543,6 +468,7 @@
       const okRows = state.rows.filter((row) => isOk(row) && row[state.series] !== null);
       const latest = okRows[okRows.length - 1];
       const latestWithTwii = state.rows.filter((row) => row.TWIIClose !== null).at(-1);
+      const latestWithMacro = state.rows.filter((row) => row.MacroMicroOldMarginMaintenanceRate !== null).at(-1);
 
       document.getElementById("meta").textContent = latest
         ? `最新完整資料：${latest.Date}；圖表使用 ${seriesLabels[state.series]}。`
@@ -553,8 +479,11 @@
       setText("latestStatus", latest ? "Status: ok" : "--");
       setText("latestRate", latest ? `${fmt.rate.format(latest[state.series])}%` : "--");
       setText("latestTwii", latestWithTwii ? fmt.index.format(latestWithTwii.TWIIClose) : "--");
-      setText("totalRows", fmt.int.format(state.rows.length));
-      setText("updatedAt", `CSV 最後日期 ${state.rows.at(-1)?.Date || "--"}`);
+      setText(
+        "latestMacro",
+        latestWithMacro ? `${fmt.rate.format(latestWithMacro.MacroMicroOldMarginMaintenanceRate)}%` : "--",
+      );
+      setText("macroNote", latestWithMacro ? `最後日期 ${latestWithMacro.Date}` : "--");
 
       const rateDelta = deltaText(okRows, state.series, fmt.rate, "%");
       const twiiDelta = deltaText(state.rows, "TWIIClose", fmt.index);
@@ -566,9 +495,10 @@
       const labels = filteredRows.map((row) => row.Date);
       const rateData = filteredRows.map((row) => row[state.series]);
       const twiiData = filteredRows.map((row) => row.TWIIClose);
+      const macroData = filteredRows.map((row) => row.MacroMicroOldMarginMaintenanceRate);
       const context = document.getElementById("mainChart");
 
-      document.getElementById("chartTitle").textContent = `${seriesLabels[state.series]} vs 台灣加權指數`;
+      document.getElementById("chartTitle").textContent = `${seriesLabels[state.series]} vs 台灣加權指數 vs Macromicro old`;
       document.getElementById("chartStatus").textContent = labels.length
         ? `${labels[0]} 到 ${labels[labels.length - 1]}`
         : "沒有可入圖資料";
@@ -601,6 +531,19 @@
               pointHoverRadius: 4,
               borderWidth: 2,
               tension: 0.18,
+            },
+            {
+              label: "Macromicro old (%)",
+              data: macroData,
+              yAxisID: "y",
+              borderColor: "#2f5f98",
+              backgroundColor: "rgba(47, 95, 152, 0.12)",
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              borderWidth: 2,
+              borderDash: [6, 4],
+              tension: 0.18,
+              spanGaps: true,
             },
           ],
         },
@@ -656,38 +599,10 @@
       });
     }
 
-    function renderRecentTable() {
-      const tbody = document.getElementById("recentRows");
-      const rows = [...state.rows].reverse().slice(0, 12);
-      tbody.innerHTML = rows
-        .map((row) => {
-          const combined = row[state.series] === null ? "--" : `${fmt.rate.format(row[state.series])}%`;
-          const twii = row.TWIIClose === null ? "--" : fmt.index.format(row.TWIIClose);
-          const twse = row.TWSEMarginMaintenanceRate_ExcludeETF === null
-            ? "--"
-            : `${fmt.rate.format(row.TWSEMarginMaintenanceRate_ExcludeETF)}%`;
-          const tpex = row.TPEXMarginMaintenanceRate_ExcludeETF === null
-            ? "--"
-            : `${fmt.rate.format(row.TPEXMarginMaintenanceRate_ExcludeETF)}%`;
-          return `
-            <tr>
-              <td>${row.Date}</td>
-              <td>${combined}</td>
-              <td>${twii}</td>
-              <td>${twse}</td>
-              <td>${tpex}</td>
-              <td>${escapeHtml(row.Status || "--")}</td>
-            </tr>
-          `;
-        })
-        .join("");
-    }
-
     function render() {
       const filteredRows = filterRows();
       updateMetrics(filteredRows);
       renderChart(filteredRows);
-      renderRecentTable();
     }
 
     function bindControls() {
@@ -719,7 +634,7 @@
       } catch (error) {
         document.querySelector(".chart-panel").innerHTML = `
           <div class="empty">
-            <div>CSV 載入失敗：${error.message}</div>
+            <div>資料載入失敗：${error.message}</div>
           </div>
         `;
         document.getElementById("meta").textContent = "資料讀取失敗";
