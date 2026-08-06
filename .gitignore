@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.ipynb
+*.log
+
+# Local source exports kept outside the deployable project.
+融資維持率_上市上櫃綜合版0804.ipynb
+融資維持率_上市上櫃綜合互動圖表.html
+20210101_20260804_daily_上市上櫃綜合融資維持率.csv

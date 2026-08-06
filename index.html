@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>融資維持率與台灣加權指數</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314746f'/%3E%3Cpath d='M12 43h40M16 38l9-10 8 6 15-18' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f5;
+      --surface: #ffffff;
+      --surface-soft: #eef2f0;
+      --text: #18201c;
+      --muted: #66716b;
+      --line: #d9e0dc;
+      --line-strong: #aab7b0;
+      --green: #14746f;
+      --amber: #b7791f;
+      --red: #b42318;
+      --blue: #2f5f98;
+      --shadow: 0 14px 30px rgba(30, 42, 36, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1480px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 22px 0 34px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 38px);
+      line-height: 1.16;
+      font-weight: 760;
+    }
+
+    .meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .source-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: 230px;
+    }
+
+    .source-links a,
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 13px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin: 14px 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .segmented {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .segmented button {
+      min-width: 50px;
+      min-height: 34px;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      border-color: var(--green);
+      background: #dbeee9;
+      color: #0d554f;
+      font-weight: 750;
+    }
+
+    select {
+      min-height: 34px;
+      padding: 5px 34px 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .metric,
+    .chart-panel,
+    .table-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .metric {
+      min-height: 92px;
+      padding: 14px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .metric-value {
+      margin-top: 8px;
+      font-size: clamp(22px, 3vw, 32px);
+      line-height: 1.1;
+      font-weight: 780;
+      white-space: nowrap;
+    }
+
+    .metric-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .up {
+      color: var(--red);
+    }
+
+    .down {
+      color: var(--green);
+    }
+
+    .chart-panel {
+      min-height: 560px;
+      padding: 14px;
+    }
+
+    .chart-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 2px 4px 10px;
+    }
+
+    .chart-title {
+      font-size: 17px;
+      line-height: 1.35;
+      font-weight: 760;
+    }
+
+    .chart-status {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      text-align: right;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 486px;
+    }
+
+    .table-panel {
+      margin-top: 14px;
+      overflow: hidden;
+    }
+
+    .table-title {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-weight: 760;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child,
+    th:last-child,
+    td:last-child {
+      text-align: left;
+    }
+
+    th {
+      color: var(--muted);
+      background: var(--surface-soft);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .scroll {
+      overflow-x: auto;
+    }
+
+    .empty {
+      min-height: 280px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .topbar {
+        display: block;
+      }
+
+      .source-links {
+        justify-content: flex-start;
+        margin-top: 12px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .chart-panel {
+        min-height: 470px;
+      }
+
+      .chart-wrap {
+        height: 390px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        width: min(100% - 20px, 1480px);
+        padding-top: 16px;
+      }
+
+      .toolbar,
+      .control {
+        align-items: flex-start;
+      }
+
+      .control {
+        width: 100%;
+        flex-direction: column;
+      }
+
+      .segmented,
+      select {
+        width: 100%;
+      }
+
+      .segmented button {
+        flex: 1 1 58px;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-head {
+        display: block;
+      }
+
+      .chart-status {
+        margin-top: 4px;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div>
+        <h1>融資維持率與台灣加權指數</h1>
+        <div class="meta" id="meta">讀取資料中...</div>
+      </div>
+      <nav class="source-links" aria-label="資料來源">
+        <a href="https://www.twse.com.tw/zh/trading/margin/mi-margn.html" target="_blank" rel="noreferrer">TWSE 融資融券</a>
+        <a href="https://www.tpex.org.tw/zh-tw/mainboard/trading/margin-trading/transactions.html" target="_blank" rel="noreferrer">TPEX 融資融券</a>
+        <a href="https://tw.stock.yahoo.com/quote/%5ETWII" target="_blank" rel="noreferrer">Yahoo ^TWII</a>
+      </nav>
+    </header>
+
+    <section class="toolbar" aria-label="圖表設定">
+      <div class="control">
+        <span class="label">期間</span>
+        <div class="segmented" id="rangeButtons">
+          <button type="button" data-range="90">3M</button>
+          <button type="button" data-range="180">6M</button>
+          <button type="button" data-range="365" aria-pressed="true">1Y</button>
+          <button type="button" data-range="1095">3Y</button>
+          <button type="button" data-range="all">ALL</button>
+        </div>
+      </div>
+      <div class="control">
+        <span class="label">維持率</span>
+        <select id="seriesSelect" aria-label="維持率序列">
+          <option value="CombinedMarginMaintenanceRate_ExcludeETF">上市 + 上櫃，不含 ETF</option>
+          <option value="CombinedMarginMaintenanceRate_IncludeETF">上市 + 上櫃，含 ETF</option>
+          <option value="TWSEMarginMaintenanceRate_ExcludeETF">上市，不含 ETF</option>
+          <option value="TWSEMarginMaintenanceRate_IncludeETF">上市，含 ETF</option>
+          <option value="TPEXMarginMaintenanceRate_ExcludeETF">上櫃，不含 ETF</option>
+          <option value="TPEXMarginMaintenanceRate_IncludeETF">上櫃，含 ETF</option>
+        </select>
+      </div>
+      <span class="pill" id="rowCount">--</span>
+    </section>
+
+    <section class="metrics" aria-label="最新資料">
+      <article class="metric">
+        <div class="metric-label">最新完整日期</div>
+        <div class="metric-value" id="latestDate">--</div>
+        <div class="metric-note" id="latestStatus">--</div>
+      </article>
+      <article class="metric">
+        <div class="metric-label">融資維持率</div>
+        <div class="metric-value" id="latestRate">--</div>
+        <div class="metric-note" id="rateDelta">--</div>
+      </article>
+      <article class="metric">
+        <div class="metric-label">加權指數收盤</div>
+        <div class="metric-value" id="latestTwii">--</div>
+        <div class="metric-note" id="twiiDelta">--</div>
+      </article>
+      <article class="metric">
+        <div class="metric-label">CSV 資料筆數</div>
+        <div class="metric-value" id="totalRows">--</div>
+        <div class="metric-note" id="updatedAt">--</div>
+      </article>
+    </section>
+
+    <section class="chart-panel">
+      <div class="chart-head">
+        <div class="chart-title" id="chartTitle">融資維持率 vs 台灣加權指數</div>
+        <div class="chart-status" id="chartStatus">--</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="mainChart"></canvas>
+      </div>
+    </section>
+
+    <section class="table-panel">
+      <div class="table-title">近期資料</div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>融資維持率</th>
+              <th>加權指數</th>
+              <th>上市維持率</th>
+              <th>上櫃維持率</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody id="recentRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const DATA_URL = "data/margin_maintenance.csv";
+    const state = {
+      rows: [],
+      chart: null,
+      range: "365",
+      series: "CombinedMarginMaintenanceRate_ExcludeETF",
+    };
+
+    const seriesLabels = {
+      CombinedMarginMaintenanceRate_ExcludeETF: "上市 + 上櫃，不含 ETF",
+      CombinedMarginMaintenanceRate_IncludeETF: "上市 + 上櫃，含 ETF",
+      TWSEMarginMaintenanceRate_ExcludeETF: "上市，不含 ETF",
+      TWSEMarginMaintenanceRate_IncludeETF: "上市，含 ETF",
+      TPEXMarginMaintenanceRate_ExcludeETF: "上櫃，不含 ETF",
+      TPEXMarginMaintenanceRate_IncludeETF: "上櫃，含 ETF",
+    };
+
+    const fmt = {
+      rate: new Intl.NumberFormat("zh-TW", { maximumFractionDigits: 2, minimumFractionDigits: 2 }),
+      index: new Intl.NumberFormat("zh-TW", { maximumFractionDigits: 2, minimumFractionDigits: 2 }),
+      int: new Intl.NumberFormat("zh-TW"),
+    };
+
+    function num(value) {
+      const text = String(value ?? "").replaceAll(",", "").trim();
+      if (!text || text === "--" || text === "-" || text.toLowerCase() === "nan") return null;
+      const parsed = Number(text);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function isOk(row) {
+      return String(row.Status || "").toLowerCase() === "ok";
+    }
+
+    function normalizeRows(rows) {
+      return rows
+        .filter((row) => row.Date)
+        .map((row) => ({
+          ...row,
+          Date: row.Date,
+          TWSEMarginMaintenanceRate_IncludeETF: num(row.TWSEMarginMaintenanceRate_IncludeETF),
+          TWSEMarginMaintenanceRate_ExcludeETF: num(row.TWSEMarginMaintenanceRate_ExcludeETF),
+          TPEXMarginMaintenanceRate_IncludeETF: num(row.TPEXMarginMaintenanceRate_IncludeETF),
+          TPEXMarginMaintenanceRate_ExcludeETF: num(row.TPEXMarginMaintenanceRate_ExcludeETF),
+          CombinedMarginMaintenanceRate_IncludeETF: num(row.CombinedMarginMaintenanceRate_IncludeETF),
+          CombinedMarginMaintenanceRate_ExcludeETF: num(row.CombinedMarginMaintenanceRate_ExcludeETF),
+          TWIIClose: num(row.TWIIClose),
+        }))
+        .sort((a, b) => a.Date.localeCompare(b.Date));
+    }
+
+    function filterRows() {
+      const usable = state.rows.filter((row) => row[state.series] !== null && row.TWIIClose !== null);
+      if (state.range === "all" || usable.length === 0) return usable;
+
+      const lastDate = new Date(usable[usable.length - 1].Date + "T00:00:00+08:00");
+      const cutoff = new Date(lastDate);
+      cutoff.setDate(cutoff.getDate() - Number(state.range));
+      return usable.filter((row) => new Date(row.Date + "T00:00:00+08:00") >= cutoff);
+    }
+
+    function deltaText(rows, field, formatter, suffix = "") {
+      const usable = rows.filter((row) => row[field] !== null);
+      if (usable.length < 2) return { text: "--", className: "" };
+
+      const latest = usable[usable.length - 1][field];
+      const previous = usable[usable.length - 2][field];
+      const delta = latest - previous;
+      const sign = delta > 0 ? "+" : "";
+      return {
+        text: `${sign}${formatter.format(delta)}${suffix} vs 前一筆`,
+        className: delta > 0 ? "up" : delta < 0 ? "down" : "",
+      };
+    }
+
+    function setText(id, value, className = "") {
+      const node = document.getElementById(id);
+      node.textContent = value;
+      node.className = id.includes("Delta") ? `metric-note ${className}` : node.className;
+    }
+
+    function updateMetrics(filteredRows) {
+      const okRows = state.rows.filter((row) => isOk(row) && row[state.series] !== null);
+      const latest = okRows[okRows.length - 1];
+      const latestWithTwii = state.rows.filter((row) => row.TWIIClose !== null).at(-1);
+
+      document.getElementById("meta").textContent = latest
+        ? `最新完整資料：${latest.Date}；圖表使用 ${seriesLabels[state.series]}。`
+        : "尚未取得完整維持率資料。";
+      document.getElementById("rowCount").textContent = `${fmt.int.format(filteredRows.length)} 筆入圖`;
+
+      setText("latestDate", latest ? latest.Date : "--");
+      setText("latestStatus", latest ? "Status: ok" : "--");
+      setText("latestRate", latest ? `${fmt.rate.format(latest[state.series])}%` : "--");
+      setText("latestTwii", latestWithTwii ? fmt.index.format(latestWithTwii.TWIIClose) : "--");
+      setText("totalRows", fmt.int.format(state.rows.length));
+      setText("updatedAt", `CSV 最後日期 ${state.rows.at(-1)?.Date || "--"}`);
+
+      const rateDelta = deltaText(okRows, state.series, fmt.rate, "%");
+      const twiiDelta = deltaText(state.rows, "TWIIClose", fmt.index);
+      setText("rateDelta", rateDelta.text, rateDelta.className);
+      setText("twiiDelta", twiiDelta.text, twiiDelta.className);
+    }
+
+    function renderChart(filteredRows) {
+      const labels = filteredRows.map((row) => row.Date);
+      const rateData = filteredRows.map((row) => row[state.series]);
+      const twiiData = filteredRows.map((row) => row.TWIIClose);
+      const context = document.getElementById("mainChart");
+
+      document.getElementById("chartTitle").textContent = `${seriesLabels[state.series]} vs 台灣加權指數`;
+      document.getElementById("chartStatus").textContent = labels.length
+        ? `${labels[0]} 到 ${labels[labels.length - 1]}`
+        : "沒有可入圖資料";
+
+      if (state.chart) state.chart.destroy();
+
+      state.chart = new Chart(context, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "融資維持率 (%)",
+              data: rateData,
+              yAxisID: "y",
+              borderColor: "#14746f",
+              backgroundColor: "rgba(20, 116, 111, 0.12)",
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              borderWidth: 2,
+              tension: 0.18,
+            },
+            {
+              label: "台灣加權指數",
+              data: twiiData,
+              yAxisID: "y1",
+              borderColor: "#b7791f",
+              backgroundColor: "rgba(183, 121, 31, 0.12)",
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              borderWidth: 2,
+              tension: 0.18,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: {
+              labels: {
+                usePointStyle: true,
+                boxWidth: 8,
+                color: "#18201c",
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  const value = context.parsed.y;
+                  if (context.dataset.yAxisID === "y") {
+                    return ` ${context.dataset.label}: ${fmt.rate.format(value)}%`;
+                  }
+                  return ` ${context.dataset.label}: ${fmt.index.format(value)}`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                color: "#66716b",
+                maxTicksLimit: 10,
+              },
+            },
+            y: {
+              position: "left",
+              title: { display: true, text: "融資維持率 (%)", color: "#14746f" },
+              ticks: {
+                color: "#14746f",
+                callback: (value) => `${value}%`,
+              },
+              grid: { color: "rgba(24, 32, 28, 0.08)" },
+            },
+            y1: {
+              position: "right",
+              title: { display: true, text: "台灣加權指數", color: "#b7791f" },
+              ticks: { color: "#b7791f" },
+              grid: { drawOnChartArea: false },
+            },
+          },
+        },
+      });
+    }
+
+    function renderRecentTable() {
+      const tbody = document.getElementById("recentRows");
+      const rows = [...state.rows].reverse().slice(0, 12);
+      tbody.innerHTML = rows
+        .map((row) => {
+          const combined = row[state.series] === null ? "--" : `${fmt.rate.format(row[state.series])}%`;
+          const twii = row.TWIIClose === null ? "--" : fmt.index.format(row.TWIIClose);
+          const twse = row.TWSEMarginMaintenanceRate_ExcludeETF === null
+            ? "--"
+            : `${fmt.rate.format(row.TWSEMarginMaintenanceRate_ExcludeETF)}%`;
+          const tpex = row.TPEXMarginMaintenanceRate_ExcludeETF === null
+            ? "--"
+            : `${fmt.rate.format(row.TPEXMarginMaintenanceRate_ExcludeETF)}%`;
+          return `
+            <tr>
+              <td>${row.Date}</td>
+              <td>${combined}</td>
+              <td>${twii}</td>
+              <td>${twse}</td>
+              <td>${tpex}</td>
+              <td>${escapeHtml(row.Status || "--")}</td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+
+    function render() {
+      const filteredRows = filterRows();
+      updateMetrics(filteredRows);
+      renderChart(filteredRows);
+      renderRecentTable();
+    }
+
+    function bindControls() {
+      document.querySelectorAll("#rangeButtons button").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.range = button.dataset.range;
+          document.querySelectorAll("#rangeButtons button").forEach((item) => {
+            item.setAttribute("aria-pressed", String(item === button));
+          });
+          render();
+        });
+      });
+
+      document.getElementById("seriesSelect").addEventListener("change", (event) => {
+        state.series = event.target.value;
+        render();
+      });
+    }
+
+    async function loadData() {
+      try {
+        const response = await fetch(`${DATA_URL}?v=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const csvText = await response.text();
+        const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+        state.rows = normalizeRows(parsed.data);
+        bindControls();
+        render();
+      } catch (error) {
+        document.querySelector(".chart-panel").innerHTML = `
+          <div class="empty">
+            <div>CSV 載入失敗：${error.message}</div>
+          </div>
+        `;
+        document.getElementById("meta").textContent = "資料讀取失敗";
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
