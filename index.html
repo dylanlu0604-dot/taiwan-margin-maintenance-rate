@@ -382,7 +382,12 @@
   </main>
 
   <script>
-    const DATA_URL = "data/margin_maintenance.csv";
+    const DATA_URLS = [
+      "data/20070101_20120101_daily_上市上櫃綜合融資維持率.csv",
+      "data/20120101_20160101_daily_上市上櫃綜合融資維持率.csv",
+      "data/20160101_20210101_daily_上市上櫃綜合融資維持率.csv",
+      "data/margin_maintenance.csv",
+    ];
     const state = {
       rows: [],
       chart: null,
@@ -416,6 +421,26 @@
       return String(row.Status || "").toLowerCase() === "ok";
     }
 
+    function hasValue(value) {
+      return String(value ?? "").trim() !== "";
+    }
+
+    function mergeRowsByDate(rows) {
+      const merged = new Map();
+      rows.forEach((row) => {
+        const date = String(row.Date ?? "").trim();
+        if (!date) return;
+
+        const current = merged.get(date) || { Date: date };
+        Object.entries(row).forEach(([key, value]) => {
+          if (!key || !hasValue(value)) return;
+          current[key] = String(value).trim();
+        });
+        merged.set(date, current);
+      });
+      return Array.from(merged.values());
+    }
+
     function normalizeRows(rows) {
       return rows
         .filter((row) => row.Date)
@@ -435,7 +460,7 @@
     }
 
     function filterRows() {
-      const usable = state.rows.filter((row) => row[state.series] !== null && row.TWIIClose !== null);
+      const usable = state.rows.filter((row) => row[state.series] !== null);
       if (state.range === "all" || usable.length === 0) return usable;
 
       const lastDate = new Date(usable[usable.length - 1].Date + "T00:00:00+08:00");
@@ -622,13 +647,25 @@
       });
     }
 
+    async function fetchCsvRows(url) {
+      const response = await fetch(`${encodeURI(url)}?v=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
+      const csvText = await response.text();
+      const parsed = Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.replace(/^\uFEFF/, "").trim(),
+      });
+      if (parsed.errors.length) {
+        throw new Error(`${url}: ${parsed.errors[0].message}`);
+      }
+      return parsed.data;
+    }
+
     async function loadData() {
       try {
-        const response = await fetch(`${DATA_URL}?v=${Date.now()}`, { cache: "no-store" });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const csvText = await response.text();
-        const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-        state.rows = normalizeRows(parsed.data);
+        const csvParts = await Promise.all(DATA_URLS.map(fetchCsvRows));
+        state.rows = normalizeRows(mergeRowsByDate(csvParts.flat()));
         bindControls();
         render();
       } catch (error) {
