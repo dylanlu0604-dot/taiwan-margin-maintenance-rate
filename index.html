@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>融資維持率與台灣加權指數</title>
+  <title>不同版本融資維持率比較</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314746f'/%3E%3Cpath d='M12 43h40M16 38l9-10 8 6 15-18' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -312,7 +312,7 @@
   <main class="page">
     <header class="topbar">
       <div>
-        <h1>融資維持率與台灣加權指數</h1>
+        <h1>不同版本融資維持率比較</h1>
         <div class="meta" id="meta">讀取資料中...</div>
       </div>
       <nav class="source-links" aria-label="資料來源">
@@ -372,7 +372,7 @@
 
     <section class="chart-panel">
       <div class="chart-head">
-        <div class="chart-title" id="chartTitle">融資維持率 vs 台灣加權指數</div>
+        <div class="chart-title" id="chartTitle">不同版本融資維持率比較</div>
         <div class="chart-status" id="chartStatus">--</div>
       </div>
       <div class="chart-wrap">
@@ -526,7 +526,7 @@
       const keepRateData = filteredRows.map((row) => row.TWSEAllMarketKeepRate);
       const context = document.getElementById("mainChart");
 
-      document.getElementById("chartTitle").textContent = `${seriesLabels[state.series]} vs 舊版融資維持率 vs 證交所全市場擔保維持率 vs 台灣加權指數`;
+      document.getElementById("chartTitle").textContent = `不同版本融資維持率比較（${seriesLabels[state.series]}）`;
       document.getElementById("chartStatus").textContent = labels.length
         ? `${labels[0]} 到 ${labels[labels.length - 1]}`
         : "沒有可入圖資料";
