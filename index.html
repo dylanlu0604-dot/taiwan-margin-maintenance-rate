@@ -389,14 +389,14 @@
         <div class="metric-note" id="rateDelta">--</div>
       </article>
       <article class="metric">
+        <div class="metric-label">證交所全市場擔保維持率</div>
+        <div class="metric-value" id="latestKeepRate">--</div>
+        <div class="metric-note" id="keepRateDelta">--</div>
+      </article>
+      <article class="metric">
         <div class="metric-label">加權指數收盤</div>
         <div class="metric-value" id="latestTwii">--</div>
         <div class="metric-note" id="twiiDelta">--</div>
-      </article>
-      <article class="metric">
-        <div class="metric-label">Macromicro old</div>
-        <div class="metric-value" id="latestMacro">--</div>
-        <div class="metric-note" id="macroNote">--</div>
       </article>
     </section>
 
@@ -534,7 +534,7 @@
       const okRows = state.rows.filter((row) => isOk(row) && row[state.series] !== null);
       const latest = okRows[okRows.length - 1];
       const latestWithTwii = state.rows.filter((row) => row.TWIIClose !== null).at(-1);
-      const latestWithMacro = state.rows.filter((row) => row.MacroMicroOldMarginMaintenanceRate !== null).at(-1);
+      const latestWithKeepRate = state.rows.filter((row) => row.TWSEAllMarketKeepRate !== null).at(-1);
 
       document.getElementById("meta").textContent = latest
         ? `最新完整資料：${latest.Date}；圖表使用 ${seriesLabels[state.series]}。`
@@ -546,15 +546,16 @@
       setText("latestRate", latest ? `${fmt.rate.format(latest[state.series])}%` : "--");
       setText("latestTwii", latestWithTwii ? fmt.index.format(latestWithTwii.TWIIClose) : "--");
       setText(
-        "latestMacro",
-        latestWithMacro ? `${fmt.rate.format(latestWithMacro.MacroMicroOldMarginMaintenanceRate)}%` : "--",
+        "latestKeepRate",
+        latestWithKeepRate ? `${fmt.rate.format(latestWithKeepRate.TWSEAllMarketKeepRate)}%` : "--",
       );
-      setText("macroNote", latestWithMacro ? `最後日期 ${latestWithMacro.Date}` : "--");
 
       const rateDelta = deltaText(okRows, state.series, fmt.rate, "%");
       const twiiDelta = deltaText(state.rows, "TWIIClose", fmt.index);
       setText("rateDelta", rateDelta.text, rateDelta.className);
       setText("twiiDelta", twiiDelta.text, twiiDelta.className);
+      const keepRateDelta = deltaText(state.rows, "TWSEAllMarketKeepRate", fmt.rate, "%");
+      setText("keepRateDelta", keepRateDelta.text, keepRateDelta.className);
     }
 
     function renderChart(filteredRows) {
