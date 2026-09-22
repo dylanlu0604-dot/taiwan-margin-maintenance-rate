@@ -337,7 +337,7 @@
         <span class="label">維持率</span>
         <select id="seriesSelect" aria-label="維持率序列">
           <option value="CombinedMarginMaintenanceRate_ExcludeETF">上市 + 上櫃，不含 ETF</option>
-          <option value="CombinedMarginMaintenanceRate_IncludeETF">上市 + 上櫃，含 ETF</option>
+          <option value="CombinedMarginMaintenanceRate_IncludeETF" selected>上市 + 上櫃，含 ETF</option>
           <option value="TWSEMarginMaintenanceRate_ExcludeETF">上市，不含 ETF</option>
           <option value="TWSEMarginMaintenanceRate_IncludeETF">上市，含 ETF</option>
           <option value="TPEXMarginMaintenanceRate_ExcludeETF">上櫃，不含 ETF</option>
@@ -393,7 +393,7 @@
       rows: [],
       chart: null,
       range: "365",
-      series: "CombinedMarginMaintenanceRate_ExcludeETF",
+      series: "CombinedMarginMaintenanceRate_IncludeETF",
     };
 
     const seriesLabels = {
@@ -526,7 +526,7 @@
       const keepRateData = filteredRows.map((row) => row.TWSEAllMarketKeepRate);
       const context = document.getElementById("mainChart");
 
-      document.getElementById("chartTitle").textContent = `${seriesLabels[state.series]} vs 台灣加權指數 vs Macromicro old vs 證交所全市場擔保維持率`;
+      document.getElementById("chartTitle").textContent = `${seriesLabels[state.series]} vs Macromicro old vs 證交所全市場擔保維持率 vs 台灣加權指數`;
       document.getElementById("chartStatus").textContent = labels.length
         ? `${labels[0]} 到 ${labels[labels.length - 1]}`
         : "沒有可入圖資料";
@@ -539,22 +539,11 @@
           labels,
           datasets: [
             {
-              label: "融資維持率 (%)",
+              label: "新版融資維持率 (%)",
               data: rateData,
               yAxisID: "y",
               borderColor: "#14746f",
               backgroundColor: "rgba(20, 116, 111, 0.12)",
-              pointRadius: 0,
-              pointHoverRadius: 4,
-              borderWidth: 2,
-              tension: 0.18,
-            },
-            {
-              label: "台灣加權指數",
-              data: twiiData,
-              yAxisID: "y1",
-              borderColor: "#b7791f",
-              backgroundColor: "rgba(183, 121, 31, 0.12)",
               pointRadius: 0,
               pointHoverRadius: 4,
               borderWidth: 2,
@@ -584,6 +573,17 @@
               borderWidth: 2,
               tension: 0.18,
               spanGaps: true,
+            },
+            {
+              label: "台灣加權指數",
+              data: twiiData,
+              yAxisID: "y1",
+              borderColor: "#b7791f",
+              backgroundColor: "rgba(183, 121, 31, 0.12)",
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              borderWidth: 2,
+              tension: 0.18,
             },
           ],
         },
