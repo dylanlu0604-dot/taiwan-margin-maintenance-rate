@@ -387,6 +387,7 @@
       "data/20120101_20160101_daily_上市上櫃綜合融資維持率.csv",
       "data/20160101_20210101_daily_上市上櫃綜合融資維持率.csv",
       "data/margin_maintenance.csv",
+      "data/twse_all_market_keep_rate.csv",
     ];
     const state = {
       rows: [],
@@ -455,6 +456,7 @@
           CombinedMarginMaintenanceRate_ExcludeETF: num(row.CombinedMarginMaintenanceRate_ExcludeETF),
           TWIIClose: num(row.TWIIClose),
           MacroMicroOldMarginMaintenanceRate: num(row.MacroMicroOldMarginMaintenanceRate),
+          TWSEAllMarketKeepRate: num(row.TWSEAllMarketKeepRate),
         }))
         .sort((a, b) => a.Date.localeCompare(b.Date));
     }
@@ -521,9 +523,10 @@
       const rateData = filteredRows.map((row) => row[state.series]);
       const twiiData = filteredRows.map((row) => row.TWIIClose);
       const macroData = filteredRows.map((row) => row.MacroMicroOldMarginMaintenanceRate);
+      const keepRateData = filteredRows.map((row) => row.TWSEAllMarketKeepRate);
       const context = document.getElementById("mainChart");
 
-      document.getElementById("chartTitle").textContent = `${seriesLabels[state.series]} vs 台灣加權指數 vs Macromicro old`;
+      document.getElementById("chartTitle").textContent = `${seriesLabels[state.series]} vs 台灣加權指數 vs Macromicro old vs 證交所全市場擔保維持率`;
       document.getElementById("chartStatus").textContent = labels.length
         ? `${labels[0]} 到 ${labels[labels.length - 1]}`
         : "沒有可入圖資料";
@@ -567,6 +570,18 @@
               pointHoverRadius: 4,
               borderWidth: 2,
               borderDash: [6, 4],
+              tension: 0.18,
+              spanGaps: true,
+            },
+            {
+              label: "證交所全市場擔保維持率 (%)",
+              data: keepRateData,
+              yAxisID: "y",
+              borderColor: "#c0392b",
+              backgroundColor: "rgba(192, 57, 43, 0.12)",
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              borderWidth: 2,
               tension: 0.18,
               spanGaps: true,
             },

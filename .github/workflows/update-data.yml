@@ -31,14 +31,17 @@ jobs:
       - name: Update CSV
         run: python scripts/update_data.py --days 3
 
+      - name: Update TWSE all-market keep rate
+        run: python scripts/update_keep_rate.py
+
       - name: Commit CSV changes
         run: |
-          if git diff --quiet -- data/margin_maintenance.csv; then
+          if git diff --quiet -- data/margin_maintenance.csv data/twse_all_market_keep_rate.csv && [ -z "$(git status --porcelain -- data/twse_all_market_keep_rate.csv)" ]; then
             echo "No CSV changes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/margin_maintenance.csv
+          git add data/margin_maintenance.csv data/twse_all_market_keep_rate.csv
           git commit -m "Update market data"
           git push
