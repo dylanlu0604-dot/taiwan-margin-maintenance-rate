@@ -526,7 +526,7 @@
       const keepRateData = filteredRows.map((row) => row.TWSEAllMarketKeepRate);
       const context = document.getElementById("mainChart");
 
-      document.getElementById("chartTitle").textContent = `${seriesLabels[state.series]} vs Macromicro old vs 證交所全市場擔保維持率 vs 台灣加權指數`;
+      document.getElementById("chartTitle").textContent = `${seriesLabels[state.series]} vs 舊版融資維持率 vs 證交所全市場擔保維持率 vs 台灣加權指數`;
       document.getElementById("chartStatus").textContent = labels.length
         ? `${labels[0]} 到 ${labels[labels.length - 1]}`
         : "沒有可入圖資料";
@@ -539,7 +539,7 @@
           labels,
           datasets: [
             {
-              label: "新版融資維持率 (%)",
+              label: "新版融資維持率",
               data: rateData,
               yAxisID: "y",
               borderColor: "#14746f",
@@ -550,7 +550,7 @@
               tension: 0.18,
             },
             {
-              label: "Macromicro old (%)",
+              label: "舊版融資維持率",
               data: macroData,
               yAxisID: "y",
               borderColor: "#2f5f98",
@@ -563,7 +563,7 @@
               spanGaps: true,
             },
             {
-              label: "證交所全市場擔保維持率 (%)",
+              label: "證交所全市場擔保維持率",
               data: keepRateData,
               yAxisID: "y",
               borderColor: "#c0392b",
@@ -576,6 +576,7 @@
             },
             {
               label: "台灣加權指數",
+              hidden: true,
               data: twiiData,
               yAxisID: "y1",
               borderColor: "#b7791f",
