@@ -209,6 +209,32 @@
       padding: 14px;
     }
 
+    .notes-panel {
+      margin-top: 14px;
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .notes-panel h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 760;
+    }
+
+    .notes-panel p {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .notes-panel p + h2 {
+      margin-top: 18px;
+    }
+
     .chart-head {
       display: flex;
       align-items: baseline;
@@ -378,6 +404,13 @@
       <div class="chart-wrap">
         <canvas id="mainChart"></canvas>
       </div>
+    </section>
+
+    <section class="notes-panel">
+      <h2>新版融資維持率說明</h2>
+      <p>新版融資維持率由本站依證交所與櫃買中心每日公布的個股融資餘額自行計算。作法是將每檔股票的融資餘額（張數）乘上當日收盤價，加總得到全市場融資市值，再除以融資金額（券商借給投資人的資金總額），即「融資市值 ÷ 融資金額 × 100%」。可切換上市、上櫃或兩者合計，並可選擇是否納入 ETF。此指標只衡量融資買進部位的擔保狀況，不含融券，也未考慮投資人自備的其他擔保品，因此數值與整戶維持率不同。一般而言，當維持率接近或跌破 130% 至 140% 區間，追繳與斷頭賣壓增加，常被視為市場恐慌與籌碼清洗的訊號；維持率偏高則代表融資戶帳上獲利豐厚、槓桿情緒偏熱。</p>
+      <h2>證交所全市場擔保維持率說明</h2>
+      <p>證交所全市場擔保維持率取自臺灣證券交易所「融資融券」資訊看板，為官方公布的上市加上櫃合計數據，自 2026 年 8 月 3 日起提供。其計算方式是將全市場融資融券擔保品市值加計融券保證金，除以融資金額加計融券標的市值，也就是把融資與融券部位合併計算的整體擔保能力。由於納入融券部位，口徑與新版融資維持率不同，兩者數值會有差距，但走勢大致同步。證交所說明，此數字代表信用交易投資人平均可承受股價波動的緩衝空間，不代表個別投資人或個別證券商的實際狀況。同一看板也提供追繳戶數、追繳金額與處分戶數等資訊，可搭配觀察信用交易風險是否升溫。</p>
     </section>
   </main>
 
